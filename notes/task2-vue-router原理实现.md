@@ -177,6 +177,8 @@ export default {
 
 当多个路由有相同的内容，把相同的内容提取到公共组件中。
 
+![avatar](../images/task2/嵌套路由.png)
+
 ## 1.2 Hash 模式 和 History 模式
 
 ## 1.3 模拟实现自己的 Vue Router
