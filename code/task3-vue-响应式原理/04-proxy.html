@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>proxy数据劫持多个成员</title>
+  </head>
+
+  <body>
+    <div id="app">
+      1234
+    </div>
+
+    <script>
+      // 模拟 vue 的 data选项
+      let data = {
+        msg: "hello",
+        count: 1,
+      };
+
+      // 模拟 vue 的实例
+      //   let vm = {};
+      //   // 劫持对象
+      //   proxyData(data);
+      //   // 数据劫持：当访问或者设置 vm 中的成员的时候，做一些干预操作
+      //   function proxyData(target) {
+      //     Object.keys(target).forEach((key) => {
+      //       // 劫持对象的莫个属性
+      //       Object.defineProperty(vm, key, {
+      //         enumerable: true, // 可枚举       (可遍历)
+      //         configurable: true, // 可配置       （可以使用 delete 删除，可以通过 defineProperty 重新定义）
+      //         // 获取属性值的时候触发
+      //         get() {
+      //           console.log("get", data.msg);
+      //           return data.msg;
+      //         },
+      //         // 设置属性值的时候触发
+      //         set(newValue) {
+      //           console.log("set", newValue);
+      //           // 数据没有变化就直接返回，不做任何操作
+      //           if (newValue === data.msg) return;
+
+      //           data.msg = newValue;
+      //           // 数据更改，更新 DOM 的值
+      //           document.querySelector("#app").textContent = data.msg;
+      //         },
+      //       });
+      //     });
+      //   }
+
+      // 使用proxy实现对数据的劫持
+      let vm = new Proxy(data, {
+        // 访问属性时触发
+        get(target, key) {
+          console.log("get, key: ", key, target[key]);
+          return Reflect.get(target, key);
+        },
+        // 设置属性时触发
+        set(target, key, newValue) {
+          console.log("set, key: ", key, target[key]);
+          // 值没有变就不往下执行
+          if (target[key] === newValue) return;
+          Reflect.set(target, key, newValue);
+          document.querySelector("#app").textContent = target[key];
+        },
+      });
+
+      // 测试
+      console.log(vm.msg);
+      setTimeout(() => {
+        vm.msg = "msg: Hello World " + Math.random().toFixed(2);
+      }, 1000);
+      setTimeout(() => {
+        vm.count = "count: " + 200;
+      }, 2000);
+    </script>
+  </body>
+</html>
