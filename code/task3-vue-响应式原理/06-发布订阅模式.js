@@ -9,9 +9,8 @@ class EventEmitter {
 
   // 订阅事件
   $on(eventName, handle) {
-    this.subs[eventName] = !this.subs[eventName]
-      ? [handle]
-      : [...this.subs[eventName], handle];
+    // this.subs[eventName] = [...(this.subs[eventName] || []), handle];
+    (this.subs[eventName] || (this.subs[eventName] = [])).push(handle);
   }
 
   // 触发事件
