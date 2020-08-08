@@ -476,10 +476,11 @@ initRouteMap() {
 
 ```js
 // 4. initEvent
-// 注册 popstate 事件，当路由地址发生变化，重新记录当前的路径
+// 注册 popstate 事件，当路由地址发生变化，重新记录当前的路径，不会向服务器发送请求
 initEvent() {
+  // 调用浏览器的前进和后退时执行
   window.addEventListener("popstate", () => {
-    this.data.current = window.location.pathname;
+    this.data.current = window.location.pathname;   // 重新设置当前路由路劲
   });
 }
 ```
@@ -497,6 +498,7 @@ initEvent() {
       props: {
         to: String,
       },
+      // template: '<a :href="to"><slot></slot></a>' // 运行时版本vue不支持template
       // 组件渲染的方法
       render(h) {
         // 返回一个a标签
@@ -512,12 +514,12 @@ initEvent() {
               click: this.handleClick,
             },
           },
-          [this.$slots.default] // 拿到插槽中的children并渲染
+          [this.$slots.default] // 拿到插槽中的children并渲染  （a标签中的内容）
         );
       },
       methods: {
         handleClick(e) {
-          e.preventDefault(); // 禁用掉 a 标签的默认事件
+         e.preventDefault(); // 禁用掉 a 标签的默认事件，a标签的默认事件会向服务器发送请求
           window.history.pushState({}, "", this.to); // 通过pushState方法改变浏览器的地址栏，并把当前地址记录到浏览器的访问历史中，会触发popstate
           this.$router.data.current = this.to; // 重新设置当前路由路劲
         },
@@ -546,15 +548,39 @@ init() {
   this.initEvent();
   this.initComponent();
 }
-constructor(options) {
-  this.options = options; // 记录options属性
-  this.routeMap = {}; // key 存取路由地址  value 存取路由组件
-  // data: 响应式对象
-  // current 用来记录我们当前的路由地址，默认是 / 根路劲
-  this.data = _Vue.observable({
-    current: "/",
-  });
-  // 6. 调用init方法初始化需要的数据
-  this.init();
+static install(Vue){
+    if (VueRouter.install.installed) {
+      return;
+    }
+    VueRouter.install.installed = true; // 标识安装过次插件
+    _Vue = Vue;
+
+    _Vue.mixin({
+      beforeCreate() {
+        if (this.$options.router) {
+          _Vue.prototype.$router = this.$options.router;
+          // 6. 调用init方法初始化需要的数据
+          this.$options.router.init();
+        }
+      },
+    });
+}
+```
+
+
+## 1.3 Vue 的构建版本
+- 运行时版：不支持 template 模板，需要打包的时候提前编译
+- 完整版：包含运行时和编译器，体积比运行时版大 10K 左右，程序运行的时候把模板转换成 render 函数
+
+### 1.3.1 使用完整版的 Vue
+创建 vue.config.js
+
+``` js
+// vue.config.js
+module.exports = {
+    // Vue 的构建版本   默认false 运行时版的vue  true 代表完整版的vue
+    // 运行时版：不支持 template 模板，需要打包的时候提前编译
+    // 完整版：包含运行时和编译器，体积比运行时版大 10K 左右，程序运行的时候把模板转换成 render 函数
+    runtimeCompiler: true
 }
 ```

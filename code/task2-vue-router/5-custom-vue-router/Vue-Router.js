@@ -33,8 +33,7 @@ class VueRouter {
       current: "/",
     });
 
-    // 6. 调用init方法初始化需要的数据
-    this.init();
+
   }
 
   // 1.VueRouter有一个静态方法install
@@ -66,6 +65,8 @@ class VueRouter {
         // 作用：在使用 new Vue({router}) 创建 vue 实例之前把router这个选项赋值给Vue的原型上面，以便后续所有的vue实例使用
         if (this.$options.router) {
           _Vue.prototype.$router = this.$options.router;
+          // 6. 调用init方法初始化需要的数据
+          this.$options.router.init();
         }
       },
     });
@@ -80,10 +81,11 @@ class VueRouter {
   }
 
   // 4. initEvent
-  // 注册 popstate 事件，当路由地址发生变化，重新记录当前的路径
+  // 注册 popstate 事件，当路由地址发生变化，重新记录当前的路径，不会向服务器发送请求
   initEvent() {
+    // 调用浏览器的前进和后退时执行
     window.addEventListener("popstate", () => {
-      this.data.current = window.location.pathname;
+      this.data.current = window.location.pathname;   // 重新设置当前路由路劲
     });
   }
 
@@ -97,6 +99,7 @@ class VueRouter {
       props: {
         to: String,
       },
+      // template: '<a :href="to"><slot></slot></a>' // 运行时版本vue不支持template
       // 组件渲染的方法
       render(h) {
         // 返回一个a标签
@@ -112,12 +115,12 @@ class VueRouter {
               click: this.handleClick,
             },
           },
-          [this.$slots.default] // 拿到插槽中的children并渲染
+          [this.$slots.default] // 拿到插槽中的children并渲染  （a标签中的内容）
         );
       },
       methods: {
         handleClick(e) {
-          e.preventDefault(); // 禁用掉 a 标签的默认事件
+          e.preventDefault(); // 禁用掉 a 标签的默认事件，a标签的默认事件会向服务器发送请求
           window.history.pushState({}, "", this.to); // 通过pushState方法改变浏览器的地址栏，并把当前地址记录到浏览器的访问历史中，会触发popstate
           this.$router.data.current = this.to; // 重新设置当前路由路劲
         },
