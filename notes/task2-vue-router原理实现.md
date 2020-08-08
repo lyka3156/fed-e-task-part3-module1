@@ -179,6 +179,124 @@ export default {
 
 ![avatar](../images/task2/嵌套路由.png)
 
+``` js
+// 1. route/index.js
+import Vue from "vue";
+import VueRouter from "vue-router";
+import Login from "../views/Login.vue";
+import Layout from "../components/Layout.vue";
+import Home from "../views/Home.vue";
+
+// 1. 注册路由插件
+// Vue.use 是用来注册插件，他会调用传入对象的 install 方法
+Vue.use(VueRouter);
+
+// 2. 定义路由规则数组
+const routes = [
+  // 登录页
+  {
+    path: "/login",
+    name: "login",
+    component: Login,
+  },
+  // Home和Detail路由都嵌套在Layout路由下面
+  // home和datail都在layout路由包裹住了
+  {
+    path: "/",
+    component: Layout,
+    children: [
+      {
+        path: "",
+        name: "home",
+        component: Home,
+      },
+      {
+        path: "detail/:id",
+        name: "detail",
+        props: true,
+        component: () => import("../views/Detail.vue"),
+      }
+    ]
+  }
+];
+
+// 3. 创建 router对象
+const router = new VueRouter({
+  mode: "history",
+  base: process.env.BASE_URL,
+  routes,
+});
+
+export default router;
+
+```
+
+### 1.1.4 编程式导航
+跳转路由的两种方式
+- 根据路由规则的path跳转(字符串)  this.$router.push("/");
+- 根据路由规则的name跳转(对象)
+
+push 方法会把当前路由的path记录到历史，replace方法不会。
+
+路由传参
+  - 通过对象的params传参
+
+
+``` vue
+<template>
+  <div class="about">
+    <h1>This is an about page</h1>
+    <button @click="push">跳转路由</button>
+  </div>
+</template>
+<script>
+export default {
+  name: "About",
+  methods: {
+    push() {
+      // 1. 跳转路由的两种方式
+      // 1.1 根据路由规则的path跳转(字符串)  this.$router.push("/");
+      // 1.2 根据路由规则的name跳转(对象)
+      // this.$router.push({
+      //   name: "home"
+      // });
+
+      // 2. replace方法不会把当前路由的路劲记录到历史
+      // this.$router.replace("/");
+
+      // 3. 路由传参
+      this.$router.push({
+        name: "detail",
+        params: { id: 2 }
+      });
+    }
+  }
+};
+</script>
+```
+
 ## 1.2 Hash 模式 和 History 模式
+不管哪种模式，都是客户端路由实现的方式，也就是当路劲发生变化时不会向服务器发送请求，使用js监听路由的变化，然后根据不同的地址渲染不同的内容。如果需要服务器端的内容的话，会发送ajax请求来获取。
+
+表现形式的区别
+- Hash 模式
+  - https://lagou.com/#/pay?id=234242   
+  - #后面跟的是路由地址，可以根据?传递参数
+- History 模式
+  - https://lagou.com/pay/234242
+  - history模式就是一个正常的url，他需要服务端的配合使用。
+
+原理的区别
+- Hash 模式是基于锚点，以及 onHashChange 事件
+  - 通过锚点的值作为路由地址，当地址发生变化后触发 onHashChange  事件，在这里根据路劲决定页面呈现的内容
+- History 模式是基于 HTML5 中的 History API
+  - history.pushState()   IE10 以后才支持
+  - history.replaceState()
+  - histroy的pushState方法和push方法的区别是，push方法路劲发生变化会向服务器发送请求，pushState方法不会向服务器发送请求，只会去改变浏览器中地址栏中的地址，并且把这个地址记录到历史记录来，通过pushState可以实现客户端路由，有兼容问题，只兼容IE10以上
+
+### 1.2.1 Histroy 模式的使用
+- History 需要服务器的支持
+- 单页应用中，服务端端不存在 http://www.testurl.com/login 这种的地址会返回找不到该页面，如果正常访问不会有任何问题，但是，浏览器在当前页面刷新浏览器的话会向服务器发送请求，去请求/login这个页面，而服务器端不存在这个页面，于是返回404 
+- 在服务器端应该除了静态资源外都返回单页应用的index.html
 
 ## 1.3 模拟实现自己的 Vue Router

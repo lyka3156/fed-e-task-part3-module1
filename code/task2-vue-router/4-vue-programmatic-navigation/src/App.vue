@@ -1,9 +1,10 @@
 <template>
   <div id="app">
     <div id="nav">
-      <!-- 6.创建链接:  路由规则中定义的path -->
+      <router-link to="/">Home</router-link>|
+      <router-link to="/detail/2">detail</router-link>|
+      <router-link to="/about">About</router-link>
     </div>
-    <!-- 5.创建路由组件的占位: 路由规则path对应的component显示的地方 -->
     <router-view />
   </div>
 </template>
