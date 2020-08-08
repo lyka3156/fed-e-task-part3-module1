@@ -1,5 +1,7 @@
 # 1. vue-router 的原理实现
 
+[插件实现](https://cn.vuejs.org/v2/guide/plugins.html)
+
 ## 1.1 Vue Router 基础使用
 
 ### 1.1.1 Vue Router 的使用步骤
@@ -300,3 +302,259 @@ export default {
 - 在服务器端应该除了静态资源外都返回单页应用的index.html
 
 ## 1.3 模拟实现自己的 Vue Router
+
+### 1.3.1 前置的知识：
+
+- [插件](https://cn.vuejs.org/v2/guide/plugins.html)
+
+  插件通常用来为 Vue 添加全局功能。插件的功能范围没有严格的限制,一般有下面几种：
+
+  - 添加全局方法或者 property。如：vue-custom-element
+  - 添加全局资源：指令/过滤器/过渡等。如 vue-touch
+  - 通过全局混入来添加一些组件选项。如 vue-router
+  - 添加 Vue 实例方法，通过把它们添加到 Vue.prototype 上实现。
+  - 一个库，提供自己的 API，同时提供上面提到的一个或多个功能。如 vue-router
+
+- 混入 mixin
+- Vue.observable()
+- slot 插槽 slot
+- render 函数
+- 运行时和完整版的 Vue
+
+### 1.3.2 Vue-Router 的实现原理
+
+#### 1.3.2.1 Hash 模块
+
+- URL 中 # 后面的内容作为路劲地址
+- 监听 hashchange 事件
+- 根据当前路由地址找到对应组件重新渲染
+- 总结： 把 URL 中 # 后面的内容作为我们路由地址，我们可以直接通过 location.url 来切换浏览器中的地址，如果只改变了 # 后面的内容，浏览器不会向服务器请求这个地址，但是它会把这个地址记录到浏览器的访问历史中，当 hash 改变后我们会监听 hash 的变化，并做相应的处理。我们只需要监听 hashchange 事件，当 hash 发生改变后会触发 hashchange 这个事件，hashchange 事件中记录当前路由地址，并找到改路由对应的组件，并重新渲染
+
+#### 1.3.2.2 Histroy 模式
+
+- 通过 history.pushState() 方法改变地址栏
+- 监听 popstate 事件
+- 根据当前路由地址找到对应组件重新渲染
+- 总结：history 的路劲就是一个普通的 url, 我们通过 history.pushState() 方法来改变地址栏，pushState 方法仅仅是改变地址栏，并把当前地址记录到浏览器的访问历史中，并不会真正的跳转到指定的路劲，也就是浏览器不会向服务器发送请求，通过监听 popstate 事件，可以监听到浏览器历史操作的变化，在 popstate 的处理函数中，可以记录改变后的地址，要注意的是调用 pushstate 或者 replaceState 的时候并不会触发该事件，当点击浏览器的前进和后退的时候或者调用 histroy 的 back 和 forward 的时候该事件才会被触发，最后当地址改变后要根据当前的地址找到对应的组件并重新渲染。
+
+#### 1.3.3 Vue Router 实现思路：
+
+##### 1.3.3.1 分析 Vue Router
+
+```js
+// router/index.js
+// 注册插件
+// 1. Vue.use 传入函数直接调用函数，传入的是对象，就直接调用对象的install方法
+Vue.use(VueRouter);
+// 创建路由对象
+// 2. VueRouter可以被实例化 ，参数是一个对象
+const router = new VueRouter({
+  routes: [{ name: "home", path: "/", component: Home }],
+});
+
+// main.js
+// 创建 Vue 实例，注册 router
+new Vue({
+  router,
+  render: (h) => h(App),
+}).$mount("#app");
+```
+
+通过上述 Vue-Router 的使用分析所得
+
+- VueRouter 有一个 静态 install 方法
+- VueRouter 是一个类，参数是一个对象
+
+VueRouter 类图如下：
+
+![avatar](../images/taks2/VueRouter类图.png)
+
+类图由 3 部分组成
+
+1. 类的名称
+
+- VueRouter
+
+2. 类的属性
+
+- options: 记录构造函数中传递的对象 (传入的路由规则)
+- data: 对象
+  - curent: 记录当前路由地址的
+  - 设置 data 的目的是我们需要一个响应式的对象，也就是 data 对象是响应式的对象，因为路由地址发生变化之后，对应的组件需要自动更新。 (Vue.observable()使对象变成响应式对象)
+- routeMap: 记录路由地址和组件的对应关系，把路由规则解析到 routeMap 对象中来
+
+3. 类的方法
+
+- Constructor 帮我们实现初始化的属性
+- install 静态方法 实现 Vue 的插件机制
+- init 用来调用下面 3 个方法，这里是把不同的代码分割到不同的方法中实现。
+- initEvent 用来注册 popstate 事件，用来监听浏览器的历史变化
+- createRouteMap 用来初始化 routeMap 属性的，它把构造函数中传递的路由规则转换成健值对的形式存到 routeMap 对象中来，key 就是路由地址 value 就是路由组件
+- initComponents 用来创建 router-view 和 router-link 这两个组件的
+
+##### 1.3.3.3 实现 Vue Router
+
+1. 实现 Vue-Router 的 静态方法 install (用来创建 Vue 插件)
+
+- 判断插件是否安装，如果已经安装了就不需要再安装了
+- 把 Vue 的构造函数中记录到全局变量中来，因为当前的 install 方法是静态方法，静态方法是通过类访问的，那时候对象还没实例化所以拿不到静态方法中的值
+- 当 Vue 加载的时候把传入的 router 对象挂载到 Vue 实例上 (注意：只执行一次)
+- 代码实现如下：
+
+```js
+export default class VueRouter {
+  // 1.VueRouter有一个静态方法install
+  // 通过install安装VueRouter
+  static install(Vue) {
+    // 1.1) 判断插件是否安装，如果已经安装了就不需要再安装了
+    if (VueRouter.install.installed) {
+      return;
+    }
+    VueRouter.install.installed = true; // 标识安装过次插件
+
+    // 1.2) 把Vue的构造函数存到全局变量，因为实例对象无法访问到静态方法中的值
+    // 后续创建Vue的组件(router-view/router-link)时要用到
+    _Vue = Vue;
+
+    // 1.3) 把创建 Vue 实例时传入的router对象注入到所有 vue 实例上
+    // 1.3.1) 我们之前使用的 $route 和 $router 就是在这时注入到 vue 实例上的
+    // 通过this.$options.router拿到router对象，但是，此处的this是VueRouter，而不是vue实例，所以不能这样来
+    // _Vue.prototype.$router = this.$options.router;
+
+    // 我们应该在能获取到vue实例的时候写上面一段代码
+    // 混入: 给所有 vue 实例混入一个选项，在这个选项里面设置一个beforeCreate
+    // 在beforeCreate这个钩子函数中就能获取到 vue 实例，然后给它的原型设置$router
+    _Vue.mixin({
+      // 注意：vue实例 和 vue组件都会执行beforeCreate这个钩子函数
+      beforeCreate() {
+        // 这里面的this就是 vue 实例 或者 vue 的组件
+        // 通过判断，只给 vue 实例注入这个$router属性，vue 组件不注入
+        // 作用：在使用 new Vue({router}) 创建 vue 实例之前把router这个选项赋值给Vue的原型上面，以便后续所有的vue实例使用
+        if (this.$options.router) {
+          _Vue.prototype.$router = this.$options.router;
+        }
+      },
+    });
+  }
+}
+```
+
+2. 实现 Vue-Router 的 constructor 钩子函数
+
+- 初始化 VueRouter 的 options、routeMap、data
+  - options: 记录构造函数传递的 options 属性
+  - routeMap: key 存取路由地址 value 存取路由组件
+  - data: 响应式对象
+    - current 用来记录我们当前的路由地址，默认是 /
+- 代码实现如下：
+
+```js
+constructor(options) {
+  this.options = options; // 记录options属性
+  this.routeMap = {}; // key 存取路由地址  value 存取路由组件
+  // data: 响应式对象
+  // current 用来记录我们当前的路由地址，默认是 / 根路劲
+  this.data = _Vue.observable({
+    current: "/",
+  });
+}
+```
+
+3. 实现 createRouteMap(或者叫 initRouteMap) 遍历所有路由信息，把组件和路由的映射记录到 routeMap 对象中
+
+```js
+// 3. createRouteMap
+// 遍历所有路由信息，把组件和路由的映射记录到 routeMap 对象中
+initRouteMap() {
+  this.options.routes.forEach((route) => {
+    this.routeMap[route.path] = route.component;
+  });
+}
+```
+
+4. 实现 initEvent: 注册 popstate 事件，当路由地址发生变化，重新记录当前的路径
+
+```js
+// 4. initEvent
+// 注册 popstate 事件，当路由地址发生变化，重新记录当前的路径
+initEvent() {
+  window.addEventListener("popstate", () => {
+    this.data.current = window.location.pathname;
+  });
+}
+```
+
+5. 实现 initComponent: 创建 router-link 和 router-view 组件
+
+```js
+  // 5. initComponent
+  // 创建 router-link 和 router-view 组件
+  initComponent() {
+    // 5.1 创建 router-link  组件
+    // 作用： 通过点击a标签，触发事件改变当前路由的地址
+    Vue.component("router-link", {
+      // 属性
+      props: {
+        to: String,
+      },
+      // 组件渲染的方法
+      render(h) {
+        // 返回一个a标签
+        return h(
+          "a",
+          {
+            // 添加标签的属性
+            attrs: {
+              href: this.to,
+            },
+            // 添加标签的事件
+            on: {
+              click: this.handleClick,
+            },
+          },
+          [this.$slots.default] // 拿到插槽中的children并渲染
+        );
+      },
+      methods: {
+        handleClick(e) {
+          e.preventDefault(); // 禁用掉 a 标签的默认事件
+          window.history.pushState({}, "", this.to); // 通过pushState方法改变浏览器的地址栏，并把当前地址记录到浏览器的访问历史中，会触发popstate
+          this.$router.data.current = this.to; // 重新设置当前路由路劲
+        },
+      },
+    });
+    const self = this;
+    // 5.2 创建 router-view 组件
+    Vue.component("router-view", {
+      render(h) {
+        // 通过当前路由地址拿到路由组件
+        const component = self.routeMap[self.data.current];
+        // 最后把路由组件渲染出来
+        return h(component);
+      },
+    });
+  }
+```
+
+6. 实现 init 方法
+
+```js
+// 6. 实现 init
+// 在此方法中初始化路由映射表对象、事件、组件
+init() {
+  this.initRouteMap();
+  this.initEvent();
+  this.initComponent();
+}
+constructor(options) {
+  this.options = options; // 记录options属性
+  this.routeMap = {}; // key 存取路由地址  value 存取路由组件
+  // data: 响应式对象
+  // current 用来记录我们当前的路由地址，默认是 / 根路劲
+  this.data = _Vue.observable({
+    current: "/",
+  });
+  // 6. 调用init方法初始化需要的数据
+  this.init();
+}
+```
