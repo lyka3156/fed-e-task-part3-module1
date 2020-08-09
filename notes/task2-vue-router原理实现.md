@@ -181,7 +181,7 @@ export default {
 
 ![avatar](../images/task2/嵌套路由.png)
 
-``` js
+```js
 // 1. route/index.js
 import Vue from "vue";
 import VueRouter from "vue-router";
@@ -217,9 +217,9 @@ const routes = [
         name: "detail",
         props: true,
         component: () => import("../views/Detail.vue"),
-      }
-    ]
-  }
+      },
+    ],
+  },
 ];
 
 // 3. 创建 router对象
@@ -230,21 +230,22 @@ const router = new VueRouter({
 });
 
 export default router;
-
 ```
 
 ### 1.1.4 编程式导航
-跳转路由的两种方式
-- 根据路由规则的path跳转(字符串)  this.$router.push("/");
-- 根据路由规则的name跳转(对象)
 
-push 方法会把当前路由的path记录到历史，replace方法不会。
+跳转路由的两种方式
+
+- 根据路由规则的 path 跳转(字符串) this.\$router.push("/");
+- 根据路由规则的 name 跳转(对象)
+
+push 方法会把当前路由的 path 记录到历史，replace 方法不会。
 
 路由传参
-  - 通过对象的params传参
 
+- 通过对象的 params 传参
 
-``` vue
+```vue
 <template>
   <div class="about">
     <h1>This is an about page</h1>
@@ -269,37 +270,41 @@ export default {
       // 3. 路由传参
       this.$router.push({
         name: "detail",
-        params: { id: 2 }
+        params: { id: 2 },
       });
-    }
-  }
+    },
+  },
 };
 </script>
 ```
 
 ## 1.2 Hash 模式 和 History 模式
-不管哪种模式，都是客户端路由实现的方式，也就是当路劲发生变化时不会向服务器发送请求，使用js监听路由的变化，然后根据不同的地址渲染不同的内容。如果需要服务器端的内容的话，会发送ajax请求来获取。
+
+不管哪种模式，都是客户端路由实现的方式，也就是当路劲发生变化时不会向服务器发送请求，使用 js 监听路由的变化，然后根据不同的地址渲染不同的内容。如果需要服务器端的内容的话，会发送 ajax 请求来获取。
 
 表现形式的区别
+
 - Hash 模式
-  - https://lagou.com/#/pay?id=234242   
+  - https://lagou.com/#/pay?id=234242
   - #后面跟的是路由地址，可以根据?传递参数
 - History 模式
   - https://lagou.com/pay/234242
-  - history模式就是一个正常的url，他需要服务端的配合使用。
+  - history 模式就是一个正常的 url，他需要服务端的配合使用。
 
 原理的区别
+
 - Hash 模式是基于锚点，以及 onHashChange 事件
-  - 通过锚点的值作为路由地址，当地址发生变化后触发 onHashChange  事件，在这里根据路劲决定页面呈现的内容
+  - 通过锚点的值作为路由地址，当地址发生变化后触发 onHashChange 事件，在这里根据路劲决定页面呈现的内容
 - History 模式是基于 HTML5 中的 History API
-  - history.pushState()   IE10 以后才支持
+  - history.pushState() IE10 以后才支持
   - history.replaceState()
-  - histroy的pushState方法和push方法的区别是，push方法路劲发生变化会向服务器发送请求，pushState方法不会向服务器发送请求，只会去改变浏览器中地址栏中的地址，并且把这个地址记录到历史记录来，通过pushState可以实现客户端路由，有兼容问题，只兼容IE10以上
+  - histroy 的 pushState 方法和 push 方法的区别是，push 方法路劲发生变化会向服务器发送请求，pushState 方法不会向服务器发送请求，只会去改变浏览器中地址栏中的地址，并且把这个地址记录到历史记录来，通过 pushState 可以实现客户端路由，有兼容问题，只兼容 IE10 以上
 
 ### 1.2.1 Histroy 模式的使用
+
 - History 需要服务器的支持
-- 单页应用中，服务端端不存在 http://www.testurl.com/login 这种的地址会返回找不到该页面，如果正常访问不会有任何问题，但是，浏览器在当前页面刷新浏览器的话会向服务器发送请求，去请求/login这个页面，而服务器端不存在这个页面，于是返回404 
-- 在服务器端应该除了静态资源外都返回单页应用的index.html
+- 单页应用中，服务端端不存在 http://www.testurl.com/login 这种的地址会返回找不到该页面，如果正常访问不会有任何问题，但是，浏览器在当前页面刷新浏览器的话会向服务器发送请求，去请求/login 这个页面，而服务器端不存在这个页面，于是返回 404
+- 在服务器端应该除了静态资源外都返回单页应用的 index.html
 
 ## 1.3 模拟实现自己的 Vue Router
 
@@ -567,20 +572,26 @@ static install(Vue){
 }
 ```
 
-
 ## 1.3 Vue 的构建版本
+
 - 运行时版：不支持 template 模板，需要打包的时候提前编译
 - 完整版：包含运行时和编译器，体积比运行时版大 10K 左右，程序运行的时候把模板转换成 render 函数
 
 ### 1.3.1 使用完整版的 Vue
+
 创建 vue.config.js
 
-``` js
+```js
 // vue.config.js
 module.exports = {
-    // Vue 的构建版本   默认false 运行时版的vue  true 代表完整版的vue
-    // 运行时版：不支持 template 模板，需要打包的时候提前编译
-    // 完整版：包含运行时和编译器，体积比运行时版大 10K 左右，程序运行的时候把模板转换成 render 函数
-    runtimeCompiler: true
-}
+  // Vue 的构建版本   默认false 运行时版的vue  true 代表完整版的vue
+  // 运行时版：不支持 template 模板，需要打包的时候提前编译
+  // 完整版：包含运行时和编译器，体积比运行时版大 10K 左右，程序运行的时候把模板转换成 render 函数
+  runtimeCompiler: true,
+};
 ```
+
+## 1.4 附录
+
+https://www.jianshu.com/p/4295aec31302
+https://zhuanlan.zhihu.com/p/27588422

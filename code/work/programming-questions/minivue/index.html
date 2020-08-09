@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+
+  <body>
+    <div id="app">
+      <h1>{{}}的差值表达式</h1>
+      <h3>{{ msg }}</h3>
+      <h3>{{ count }}</h3>
+      <h1>v-text</h1>
+      <div v-text="msg"></div>
+      <h1>v-model 实现双向绑定，数据变化更新视图，视图变化更新数据</h1>
+      <input type="text" v-model="msg" />
+      <input type="text" v-model="count" />
+      <h1>v-html</h1>
+      <div v-html="htmlContent"></div>
+      <h1>v-on</h1>
+      <button v-on:click="handleClick">点击了</button>
+    </div>
+
+    <script src="./js/dep.js"></script>
+    <script src="./js/watcher.js"></script>
+    <script src="./js/compiler.js"></script>
+    <script src="./js/observer.js"></script>
+    <script src="./js/vue.js"></script>
+    <!-- <script src="./vue.js"></script> -->
+
+    <script>
+      let vm = new Vue({
+        el: "#app", // 挂载的元素
+        // 数据， 响应式
+        data: {
+          msg: "hello word",
+          count: 100,
+          items: ["a", "b", "c"],
+          person: {
+            name: "zs",
+          },
+          htmlContent: "<p>v-html实现</p>",
+        },
+        methods: {
+          handleClick: function () {
+            alert("点击我了");
+          },
+        },
+      });
+      console.log(vm);
+    </script>
+  </body>
+</html>
